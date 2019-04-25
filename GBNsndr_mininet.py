@@ -33,8 +33,8 @@ while(data):
         if sock.sendto(pickle.dumps(packet), (options.ip, options.port)):
             nextseqnumber = (nextseqnumber+1)%256
             numTransmits += 1
-            number
-            print (nextseqnumber)
+            numBytes += len(packet[1])
+            print(len(packet[1]))
             data = f.read(buffer)
     else:
         break
