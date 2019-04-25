@@ -3,3 +3,6 @@
 
 # ignore test files
 test*
+
+# ignore .out files
+*.out

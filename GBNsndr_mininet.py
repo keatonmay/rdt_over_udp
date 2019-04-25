@@ -1,4 +1,5 @@
 import socket, optparse
+import pickle
 
 #MESSAGE = "Hello world"
 
@@ -9,10 +10,31 @@ parser.add_option('-p', dest='port', type='int', default=12345)
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-buffer = 1024
+nextseqnumber = 0
+base = 0
+windowsize = 10
+
+numTransmits = 0
+numRetransmits = 0
+numTOevents = 0
+numBytes = 0
+numCorrupts = 0
+
+
+buffer = 100
 f = open("./500K.txt","rb")
 data = f.read(buffer)
 
 while(data):
-    if sock.sendto(bytes(data), (options.ip, options.port)):
-        data = f.read(buffer)
+    if nextseqnumber < base + windowsize:
+        packet = []
+        packet.append(nextseqnumber)
+        packet.append(data)
+        if sock.sendto(pickle.dumps(packet), (options.ip, options.port)):
+            nextseqnumber = (nextseqnumber+1)%256
+            numTransmits += 1
+            number
+            print (nextseqnumber)
+            data = f.read(buffer)
+    else:
+        break
