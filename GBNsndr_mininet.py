@@ -32,11 +32,16 @@ while(data):
         packet.append(nextseqnumber)
         packet.append(data)
         if sock.sendto(pickle.dumps(packet), (options.ip, options.port)):
-            nextseqnumber = (nextseqnumber+1)%256
-            numTransmits += 1
-            numBytes += len(packet[1])
-            print(len(packet[1]))
-            data = f.read(buffer)
-        
+                nextseqnumber = (nextseqnumber+1)%256
+                numTransmits += 1
+                numBytes += len(packet[1])
+                data = f.read(buffer)
+        try:
+                recdata, addr = sock.recvfrom(2048)
+                ack = []
+                ack = pickle.loads(recdata)
+                print("received ack for seq #: %d" % ack[0])
+        except:
+                continue
     #else:
         #break

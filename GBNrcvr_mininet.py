@@ -20,6 +20,5 @@ while True:
     f.flush()
     ack = []
     ack.append(recpack[0])
-    ackpack = pickle.dumps(ack)
-    if sock.sendto(ackpack, (addr[0], addr[1])):
+    if sock.sendto(pickle.dumps(ack), (addr[0], addr[1])):
         print("ack sent")
