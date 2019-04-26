@@ -9,6 +9,7 @@ parser.add_option('-p', dest='port', type='int', default=12345)
 (options, args) = parser.parse_args()
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.settimeout(0.01)
 
 nextseqnumber = 0
 base = 0
@@ -26,7 +27,7 @@ f = open("./500K.txt","rb")
 data = f.read(buffer)
 
 while(data):
-    if nextseqnumber < base + windowsize:
+    #if nextseqnumber < (base + windowsize):
         packet = []
         packet.append(nextseqnumber)
         packet.append(data)
@@ -36,5 +37,6 @@ while(data):
             numBytes += len(packet[1])
             print(len(packet[1]))
             data = f.read(buffer)
-    else:
-        break
+        
+    #else:
+        #break
