@@ -1,5 +1,6 @@
 import socket, optparse
 import pickle
+import time
 
 #MESSAGE = "Hello world"
 
@@ -14,6 +15,7 @@ sock.settimeout(0.01)
 nextseqnumber = 0
 base = 0
 windowsize = 10
+timeout = 0.01
 
 numTransmits = 0
 numRetransmits = 0
@@ -25,6 +27,8 @@ numCorrupts = 0
 buffer = 100
 f = open("./500K.txt","rb")
 data = f.read(buffer)
+
+lastack = time.time()
 
 while(data):
     #if nextseqnumber < (base + windowsize):
@@ -40,8 +44,11 @@ while(data):
                 recdata, addr = sock.recvfrom(2048)
                 ack = []
                 ack = pickle.loads(recdata)
-                print("received ack for seq #: %d" % ack[0])
+                if ack[0] == base:
+                        print("ack arrived in order")
+                        base = (base+1)%256
         except:
-                continue
+                if(time.time() - lastack > timeout):
+                        print("packet timeout, resending window")
     #else:
         #break
