@@ -1,5 +1,6 @@
 import socket, optparse
 import pickle
+import checksum
 
 parse = optparse.OptionParser()
 parse.add_option('-i', dest='ip', default='127.0.0.1')
@@ -18,11 +19,23 @@ while True:
     data, addr = sock.recvfrom(1024)
     recpack = []
     recpack = pickle.loads(data)
-    if recpack[0] == expectedseqnum:
-        f.write("%s: %d : %s\n" % (addr, recpack[0], recpack[2]))
-        f.flush()
-        expectedseqnum = (expectedseqnum+1)%256
-    ack = []
-    ack.append(recpack[0])
-    if sock.sendto(pickle.dumps(ack), (addr[0], addr[1])):
-        print("ack %d sent" % ack[0])
+    
+    packetcheck = checksum.addbits(recpack[2])
+    packetcheck += recpack[1]
+
+    print(expectedseqnum)
+    print(recpack[0])
+    
+    if(packetcheck == 0xFFFF):
+        if recpack[0] == expectedseqnum:
+            f.write("%s: %d : %s\n" % (addr, recpack[0], recpack[2]))
+            f.flush()
+            expectedseqnum = (expectedseqnum+1)%256
+        ack = []
+        ack.append(recpack[0])
+        if sock.sendto(pickle.dumps(ack), (addr[0], addr[1])):
+            print("")
+    else:
+        ack = []
+        ack.append(expectedseqnum-1)
+        sock.sendto(pickle.dumps(ack), (addr[0], addr[1]))

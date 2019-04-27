@@ -35,11 +35,17 @@ lastack = time.time()
 while(data):
         if nextseqnumber < (base + windowsize):
                 packet = []
-                packetchecksum = checksum.checksum(data)
+
+                # add bits and take one's complement to compute checksum
+                packchecksum = checksum.addbits(data)
+                packchecksum = packchecksum + (packchecksum >> 16)
+                packchecksum = ~packchecksum & 0xFFFF
                 packet.append(nextseqnumber)
-                packet.append(packetchecksum)
+                packet.append(packchecksum)
                 packet.append(data)
                 #print ("%s : %s : %s" % (bin(packet[0]), bin(packet[1]), type(packet[2])))
+                #print(bin(packchecksum))
+                #print(bin(test))
                 if sock.sendto(pickle.dumps(packet), (options.ip, options.port)):
                         nextseqnumber = (nextseqnumber+1)%256
                         numTransmits += 1
@@ -51,7 +57,7 @@ while(data):
                 ack = []
                 ack = pickle.loads(recdata)
                 if ack[0] == base:
-                        print("ack arrived in order: %s" % ack[0])
+                        #print("ack arrived in order: %s" % ack[0])
                         del packetsinwindow[0]
                         base = (base+1)%256
                         lastack = time.time()
