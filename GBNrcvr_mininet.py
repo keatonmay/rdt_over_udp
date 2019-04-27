@@ -23,8 +23,8 @@ while True:
     packetcheck = checksum.addbits(recpack[2])
     packetcheck += recpack[1]
 
-    #print(expectedseqnum)
-    #print(recpack[0])
+    print(expectedseqnum)
+    print(recpack[0])
     
     if(packetcheck == 0xFFFF):
         if recpack[0] == expectedseqnum:

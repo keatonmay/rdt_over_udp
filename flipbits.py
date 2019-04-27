@@ -1,7 +1,8 @@
 import random
 
 def flipbits(data, probability):
-    if(random.randint(1,101) <= probability):
-        data[0] ^= (1 << 0)
+    pos = 1
+    mask = 1 << 1
+    data[0] = (data[0] ^ mask)
     return data
 

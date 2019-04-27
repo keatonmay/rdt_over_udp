@@ -3,6 +3,7 @@ import pickle
 import time
 import checksum
 import flipbits
+import random
 
 #MESSAGE = "Hello world"
 
@@ -25,7 +26,11 @@ numTOevents = 0
 numBytes = 0
 numCorrupts = 0
 
+CORRUPT_PROBA = 0
+
 packetsinwindow = []
+
+begin = time.time()
 
 buffer = 100
 f = open("./500K.txt","rb")
@@ -35,36 +40,37 @@ lastack = time.time()
 while(data):
         if nextseqnumber <= (base + windowsize):
                 packet = []
-                #print(len(packetsinwindow))
                 # add bits and take one's complement to compute checksum
-                data = bytearray(data)
                 packchecksum = checksum.addbits(data)
                 packchecksum = packchecksum + (packchecksum >> 16)
                 packchecksum = ~packchecksum & 0xFFFF
-                #flipbits.flipbits(data, 3)
                 packet.append(nextseqnumber)
                 packet.append(packchecksum)
                 packet.append(data)
-                #print ("%s : %s : %s" % (bin(packet[0]), bin(packet[1]), type(packet[2])))
-                #print(bin(packchecksum))
-                if sock.sendto(pickle.dumps(packet), (options.ip, options.port)):
-                        nextseqnumber = (nextseqnumber+1)%256
-                        numTransmits += 1
-                        packetsinwindow.append(packet)
-                        numBytes += len(packet[2])
-                        data = f.read(buffer)
+                packetsinwindow.append(packet)
+                print(numTransmits)
+                if (random.randint(1,101) <= CORRUPT_PROBA):
+                        corruptedData = bytearray(data)
+                        corruptedData = flipbits.flipbits(corruptedData)
+                        del packet[2]
+                        packet.append(corruptedData)
+                        numCorrupts += 1
+                
+                sock.sendto(pickle.dumps(packet), (options.ip, options.port))
+                nextseqnumber = (nextseqnumber+1)%256
+                numTransmits += 1
+                numBytes += len(packet[2])
+                data = f.read(buffer)
         try:
                 recdata, addr = sock.recvfrom(2048)
                 ack = []
                 ack = pickle.loads(recdata)
                 if ack[0] == base:
-                        #print("ack arrived in order: %s" % ack[0])
                         del packetsinwindow[0]
                         base = (base+1)%256
                         lastack = time.time()
         except:
                 if(time.time() - lastack > timeout):
-                        print("packet timeout, resending window: %d" % nextseqnumber)
                         numTOevents += 1
                         for i in packetsinwindow:
                                 sock.sendto(pickle.dumps(i), (options.ip, options.port))

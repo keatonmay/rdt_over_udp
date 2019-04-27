@@ -23,8 +23,8 @@ class SimpleTopo(Topo):
 #		self.addLink(host1, switch1, **linkOneGigDelayLoss)
 
 		host2 = self.addHost('h2')
-#		self.addLink(host2, switch1, **linkOneGigNoDelayNoLoss)
-		self.addLink(host2, switch1, **linkOneGigDelayLoss)
+		self.addLink(host2, switch1, **linkOneGigNoDelayNoLoss)
+#		self.addLink(host2, switch1, **linkOneGigDelayLoss)
 
 
 def perfTest():
