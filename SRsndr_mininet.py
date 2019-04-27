@@ -15,14 +15,8 @@ sock.settimeout(0.001)
 #initializes window variables (upper and lower window bounds, position of next seq number)
 base=1
 nextSeqnum=1
-windowSize=7
+windowSize=10
 window = []
-
-numTransmits = 0
-numRetransmits = 0
-numTOevents = 0
-numBytes = 0
-numCorrupts = 0
 
 #SENDS DATA
 f = open("./500K.txt","rb") 
@@ -58,10 +52,21 @@ while not done or window: #windows is not full and data is not empty
 				lastackreceived = time.time()
 				del window[0]
 				base = base + 1
-		else:
-			print("ERROR")
+		else: #individually send back packet (same as above)
+			if(nextSeqnum<base+windowSize) and not done:
+				sndpkt = [] #seq number, data, checksum (index 0, 1, 2)
+				sndpkt.append(nextSeqnum)
+				sndpkt.append(data)
+				h = hashlib.md5()
+				h.update(pickle.dumps(sndpkt))
+				sndpkt.append(h.digest())
+				sock.sendto(pickle.dumps(sndpkt), (options.ip, options.port))
+				nextSeqnum = nextSeqnum + 1 #send and update next seq
+				if(not data):
+					done = True #no more data to end
+				window.append(sndpkt) #add packet to window
 	except:
-		if(time.time() - lastackreceived > 0.01): #timout is 0.01
+		if(time.time() - lastackreceived > 0.01): #timeout is 0.01
 			for i in window:
 				sock.sendto(pickle.dumps(i), (options.ip, options.port))
 
