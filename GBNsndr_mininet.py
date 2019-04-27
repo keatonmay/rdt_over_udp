@@ -16,7 +16,7 @@ sock.settimeout(0.01)
 nextseqnumber = 0
 base = 0
 windowsize = 10
-timeout = 0.01
+timeout = 0.5
 
 numTransmits = 0
 numRetransmits = 0
@@ -54,6 +54,10 @@ while(data):
                         print("ack arrived in order: %s" % ack[0])
                         del packetsinwindow[0]
                         base = (base+1)%256
+                else:
+                        print("ack arrived out of order: %s" % ack[0])
+                        for i in packetsinwindow:
+                                sock.sendto(pickle.dumps(i), (options.ip, options.port))
         except:
                 if(time.time() - lastack > timeout):
                         #print("packet timeout, resending window")
