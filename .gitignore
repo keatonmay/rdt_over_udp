@@ -6,3 +6,6 @@ test*
 
 # ignore .out files
 *.out
+
+# ignore cache files
+__*

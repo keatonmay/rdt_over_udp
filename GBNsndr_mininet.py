@@ -1,6 +1,7 @@
 import socket, optparse
 import pickle
 import time
+import checksum
 
 #MESSAGE = "Hello world"
 
@@ -34,26 +35,28 @@ lastack = time.time()
 while(data):
         if nextseqnumber < (base + windowsize):
                 packet = []
+                packetchecksum = checksum.checksum(data)
                 packet.append(nextseqnumber)
+                packet.append(packetchecksum)
                 packet.append(data)
+                #print ("%s : %s : %s" % (bin(packet[0]), bin(packet[1]), type(packet[2])))
                 if sock.sendto(pickle.dumps(packet), (options.ip, options.port)):
                         nextseqnumber = (nextseqnumber+1)%256
                         numTransmits += 1
                         packetsinwindow.append(packet)
-                        numBytes += len(packet[1])
+                        numBytes += len(packet[2])
                         data = f.read(buffer)
-        else:
-                break
         try:
                 recdata, addr = sock.recvfrom(2048)
                 ack = []
                 ack = pickle.loads(recdata)
                 if ack[0] == base:
-                        print("ack arrived in order")
+                        print("ack arrived in order: %s" % ack[0])
+                        del packetsinwindow[0]
                         base = (base+1)%256
         except:
                 if(time.time() - lastack > timeout):
-                        print("packet timeout, resending window")
+                        #print("packet timeout, resending window")
                         numTOevents += 1
                         for i in packetsinwindow:
                                 sock.sendto(pickle.dumps(i), (options.ip, options.port))

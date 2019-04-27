@@ -16,7 +16,7 @@ while True:
     data, addr = sock.recvfrom(1024)
     recpack = []
     recpack = pickle.loads(data)
-    f.write("%s: %d : %s\n" % (addr, recpack[0], recpack[1]))
+    f.write("%s: %d : %s\n" % (addr, recpack[0], recpack[2]))
     f.flush()
     ack = []
     ack.append(recpack[0])
