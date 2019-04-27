@@ -27,6 +27,7 @@ numBytes = 0
 numCorrupts = 0
 
 CORRUPT_PROBA = 0
+corrupted = False
 
 packetsinwindow = []
 
@@ -48,19 +49,13 @@ while(data):
                 packet.append(packchecksum)
                 packet.append(data)
                 packetsinwindow.append(packet)
-                print(numTransmits)
-                if (random.randint(1,101) <= CORRUPT_PROBA):
-                        corruptedData = bytearray(data)
-                        corruptedData = flipbits.flipbits(corruptedData)
-                        del packet[2]
-                        packet.append(corruptedData)
-                        numCorrupts += 1
-                
                 sock.sendto(pickle.dumps(packet), (options.ip, options.port))
-                nextseqnumber = (nextseqnumber+1)%256
-                numTransmits += 1
-                numBytes += len(packet[2])
-                data = f.read(buffer)
+                if (not corrupted):
+                        nextseqnumber = (nextseqnumber+1)%256
+                        numTransmits += 1
+                        numBytes += len(packet[2])
+                        data = f.read(buffer)
+                corrupted = False
         try:
                 recdata, addr = sock.recvfrom(2048)
                 ack = []
@@ -75,3 +70,9 @@ while(data):
                         for i in packetsinwindow:
                                 sock.sendto(pickle.dumps(i), (options.ip, options.port))
                         lastack = time.time()
+end = time.time()
+print("total elapsed time: ", end - begin)
+print("number of packets transmitted (excluding retransmits): ", numTransmits)
+print("number of bytes sent: ", numBytes)
+print("number of timeout events: ", numTOevents)
+print("number of corrupted packets sent", numCorrupts)

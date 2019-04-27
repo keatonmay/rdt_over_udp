@@ -9,33 +9,46 @@ parse.add_option('-p', dest='port', default=12345)
 
 expectedseqnum = 0
 
+numBytes = 0
+numErrors = 0
+numOutOfSeq = 0
+
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((options.ip, options.port))
+sock.settimeout(0.1)
 
 f = open('test.txt','w')
-print("this is printing")
 
 while True:
-    data, addr = sock.recvfrom(1024)
-    recpack = []
-    recpack = pickle.loads(data)
+    try:
+        data, addr = sock.recvfrom(1024)
+        recpack = []
+        recpack = pickle.loads(data)
     
-    packetcheck = checksum.addbits(recpack[2])
-    packetcheck += recpack[1]
+        packetcheck = checksum.addbits(recpack[2])
+        packetcheck += recpack[1]
 
-    print(expectedseqnum)
-    print(recpack[0])
+        #print(expectedseqnum)
+        #print(recpack[0])
     
-    if(packetcheck == 0xFFFF):
-        if recpack[0] == expectedseqnum:
-            f.write("%s: %d : %s\n" % (addr, recpack[0], recpack[2]))
-            f.flush()
-            expectedseqnum = (expectedseqnum+1)%256
-        ack = []
-        ack.append(recpack[0])
-        sock.sendto(pickle.dumps(ack), (addr[0], addr[1]))
-    else:
-        #print("checksum error: sending duplicate ack")
-        ack = []
-        #ack.append(expectedseqnum-1)
-        #sock.sendto(pickle.dumps(ack), (addr[0], addr[1]))
+        if(packetcheck == 0xFFFF):
+            if recpack[0] == expectedseqnum:
+                f.write("%s: %d : %s\n" % (addr, recpack[0], recpack[2]))
+                f.flush()
+                numBytes += len(recpack[2])
+                expectedseqnum = (expectedseqnum+1)%256
+            elif recpack[0] > expectedseqnum:
+                numOutOfSeq += 1
+            ack = []
+            ack.append(recpack[0])
+            sock.sendto(pickle.dumps(ack), (addr[0], addr[1]))
+        else:
+            print("checksum error")
+            numErrors += 1
+
+    except:
+        break
+
+print("number of bytes received: ", numBytes)
+print("number of checksum errors: ", numErrors)
+print("number of out of order packets received: ", numOutOfSeq)
