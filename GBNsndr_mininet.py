@@ -23,6 +23,7 @@ numTOevents = 0
 numBytes = 0
 numCorrupts = 0
 
+packetsinwindow = []
 
 buffer = 100
 f = open("./500K.txt","rb")
@@ -31,15 +32,18 @@ data = f.read(buffer)
 lastack = time.time()
 
 while(data):
-    #if nextseqnumber < (base + windowsize):
-        packet = []
-        packet.append(nextseqnumber)
-        packet.append(data)
-        if sock.sendto(pickle.dumps(packet), (options.ip, options.port)):
-                nextseqnumber = (nextseqnumber+1)%256
-                numTransmits += 1
-                numBytes += len(packet[1])
-                data = f.read(buffer)
+        if nextseqnumber < (base + windowsize):
+                packet = []
+                packet.append(nextseqnumber)
+                packet.append(data)
+                if sock.sendto(pickle.dumps(packet), (options.ip, options.port)):
+                        nextseqnumber = (nextseqnumber+1)%256
+                        numTransmits += 1
+                        packetsinwindow.append(packet)
+                        numBytes += len(packet[1])
+                        data = f.read(buffer)
+        else:
+                break
         try:
                 recdata, addr = sock.recvfrom(2048)
                 ack = []
@@ -50,5 +54,8 @@ while(data):
         except:
                 if(time.time() - lastack > timeout):
                         print("packet timeout, resending window")
-    #else:
-        #break
+                        numTOevents += 1
+                        for i in packetsinwindow:
+                                sock.sendto(pickle.dumps(i), (options.ip, options.port))
+        #else:
+                #break
