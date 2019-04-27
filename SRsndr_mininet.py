@@ -17,6 +17,7 @@ base=1
 nextSeqnum=1
 windowSize=10
 window = []
+nak = []
 
 #SENDS DATA
 f = open("./500K.txt","rb") 
@@ -32,6 +33,7 @@ while not done or window: #windows is not full and data is not empty
 		h = hashlib.md5()
 		h.update(pickle.dumps(sndpkt))
 		sndpkt.append(h.digest())
+		nak.append(sndpkt)
 		sock.sendto(pickle.dumps(sndpkt), (options.ip, options.port))
 		nextSeqnum = nextSeqnum + 1 #send and update next seq
 		if(not data):
@@ -49,22 +51,14 @@ while not done or window: #windows is not full and data is not empty
 		if c == h.digest(): #if true, then received in order
 			#ACKS RECEIVED
 			while rcvpkt[0]>base and window:
+				del nak[0] #ACK'd remove from nak
 				lastackreceived = time.time()
 				del window[0]
 				base = base + 1
-		else: #individually send back packet (same as above)
-			if(nextSeqnum<base+windowSize) and not done:
-				sndpkt = [] #seq number, data, checksum (index 0, 1, 2)
-				sndpkt.append(nextSeqnum)
-				sndpkt.append(data)
-				h = hashlib.md5()
-				h.update(pickle.dumps(sndpkt))
-				sndpkt.append(h.digest())
-				sock.sendto(pickle.dumps(sndpkt), (options.ip, options.port))
-				nextSeqnum = nextSeqnum + 1 #send and update next seq
-				if(not data):
-					done = True #no more data to end
-				window.append(sndpkt) #add packet to window
+		else: #individually send back unacked packets (stored in nak)
+			while len(nak) > 0: #until all unACK'd packets sent
+				sock.sendto(pickle.dumps(nak[0]), (options.ip, options.port))
+				del nak[0] #resend and delete from nak
 	except:
 		if(time.time() - lastackreceived > 0.01): #timeout is 0.01
 			for i in window:

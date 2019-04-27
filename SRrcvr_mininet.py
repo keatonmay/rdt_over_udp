@@ -41,22 +41,23 @@ while True:
 				else: #if empty, reached end of file
 					EOF = True
 				expectedseqnum = expectedseqnum + 1
-				sndpkt = [] #send packets back for ACK
+				sndpkt = [] #send packets back for ACK (expectedseq, ACK, checksum)
 				sndpkt.append(expectedseqnum) #send back updated expected seq num
+				sndpkt.append('ACK')
 				h = hashlib.md5()
 				h.update(pickle.dumps(sndpkt))
 				sndpkt.append(h.digest())
 				sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
-
-			else: #if out of order re send ACK for last in order file received
-				sndpkt = [] #send packets back for ACK
-				sndpkt.append(expectedseqnum)
-				h = hashlib.md5()
-				h.update(pickle.dumps(sndpkt))
-				sndpkt.append(h.digest())
-				sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
+			else:
+				print("ERROR expected %s, got %s", expectedseqnum, rcvpkt[0])
 		else:
-			print("ERROR")
+			sndpkt = [] #send packets back for ACK
+			sndpkt.append(expectedseqnum) #pkts with NAK (expectedseq, NAK, checksum)
+			sndpkt.append('NAK')
+			h = hashlib.md5()
+			h.update(pickle.dumps(sndpkt))
+			sndpkt.append(h.digest())
+			sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
 	except:
 		if EOF:
 			if(time.time()-lastpktreceived>3): #timeout is 3
