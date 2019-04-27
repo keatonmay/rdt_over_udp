@@ -9,3 +9,6 @@ test*
 
 # ignore cache files
 __*
+
+# ignore # files
+*#

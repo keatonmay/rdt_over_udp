@@ -2,6 +2,7 @@ import socket, optparse
 import pickle
 import time
 import checksum
+import flipbits
 
 #MESSAGE = "Hello world"
 
@@ -16,7 +17,7 @@ sock.settimeout(0.001)
 nextseqnumber = 0
 base = 0
 windowsize = 10
-timeout = 0.003
+timeout = 0.022
 
 numTransmits = 0
 numRetransmits = 0
@@ -29,23 +30,23 @@ packetsinwindow = []
 buffer = 100
 f = open("./500K.txt","rb")
 data = f.read(buffer)
-
 lastack = time.time()
 
 while(data):
-        if nextseqnumber < (base + windowsize):
+        if nextseqnumber <= (base + windowsize):
                 packet = []
-
+                #print(len(packetsinwindow))
                 # add bits and take one's complement to compute checksum
+                data = bytearray(data)
                 packchecksum = checksum.addbits(data)
                 packchecksum = packchecksum + (packchecksum >> 16)
                 packchecksum = ~packchecksum & 0xFFFF
+                #flipbits.flipbits(data, 3)
                 packet.append(nextseqnumber)
                 packet.append(packchecksum)
                 packet.append(data)
                 #print ("%s : %s : %s" % (bin(packet[0]), bin(packet[1]), type(packet[2])))
                 #print(bin(packchecksum))
-                #print(bin(test))
                 if sock.sendto(pickle.dumps(packet), (options.ip, options.port)):
                         nextseqnumber = (nextseqnumber+1)%256
                         numTransmits += 1
@@ -63,7 +64,8 @@ while(data):
                         lastack = time.time()
         except:
                 if(time.time() - lastack > timeout):
-                        #print("packet timeout, resending window")
+                        print("packet timeout, resending window: %d" % nextseqnumber)
                         numTOevents += 1
                         for i in packetsinwindow:
                                 sock.sendto(pickle.dumps(i), (options.ip, options.port))
+                        lastack = time.time()

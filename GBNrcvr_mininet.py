@@ -23,8 +23,8 @@ while True:
     packetcheck = checksum.addbits(recpack[2])
     packetcheck += recpack[1]
 
-    print(expectedseqnum)
-    print(recpack[0])
+    #print(expectedseqnum)
+    #print(recpack[0])
     
     if(packetcheck == 0xFFFF):
         if recpack[0] == expectedseqnum:
@@ -33,9 +33,9 @@ while True:
             expectedseqnum = (expectedseqnum+1)%256
         ack = []
         ack.append(recpack[0])
-        if sock.sendto(pickle.dumps(ack), (addr[0], addr[1])):
-            print("")
-    else:
-        ack = []
-        ack.append(expectedseqnum-1)
         sock.sendto(pickle.dumps(ack), (addr[0], addr[1]))
+    else:
+        #print("checksum error: sending duplicate ack")
+        ack = []
+        #ack.append(expectedseqnum-1)
+        #sock.sendto(pickle.dumps(ack), (addr[0], addr[1]))
