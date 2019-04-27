@@ -19,6 +19,13 @@ windowSize=10
 window = []
 nak = []
 
+#stat vars
+numTransmits = 0
+numRetransmits = 0
+numTOevents = 0
+numBytes = 0
+numCorrupts = 0
+
 #SENDS DATA
 f = open("./500K.txt","rb") 
 data = f.read(100)
@@ -30,11 +37,13 @@ while not done or window: #windows is not full and data is not empty
 		sndpkt = [] #seq number, data, checksum (index 0, 1, 2)
 		sndpkt.append(nextSeqnum)
 		sndpkt.append(data)
+		numBytes = numBytes + len(data)
 		h = hashlib.md5()
 		h.update(pickle.dumps(sndpkt))
 		sndpkt.append(h.digest())
-		nak.append(sndpkt)
+		nak.append(sndpkt) #automatically add ALL outgoing packets to nak
 		sock.sendto(pickle.dumps(sndpkt), (options.ip, options.port))
+		numTransmits = numTransmits +1
 		nextSeqnum = nextSeqnum + 1 #send and update next seq
 		if(not data):
 			done = True #no more data to end
@@ -49,20 +58,23 @@ while not done or window: #windows is not full and data is not empty
 		h = hashlib.md5() #checksum calculated
 		h.update(pickle.dumps(rcvpkt))
 		if c == h.digest(): #if true, then received in order
-			#ACKS RECEIVED
+			#ACK RECEIVED in ORDER
 			while rcvpkt[0]>base and window:
-				del nak[0] #ACK'd remove from nak
+				del nak[0] #ACK'd so remove from nak
 				lastackreceived = time.time()
 				del window[0]
 				base = base + 1
 		else: #individually send back unacked packets (stored in nak)
-			while len(nak) > 0: #until all unACK'd packets sent
+			while len(nak) > 0: #until all unACK'd packets sent (FIFO)
 				sock.sendto(pickle.dumps(nak[0]), (options.ip, options.port))
+				numRetransmits = numRetransmits +1
 				del nak[0] #resend and delete from nak
 	except:
 		if(time.time() - lastackreceived > 0.01): #timeout is 0.01
 			for i in window:
 				sock.sendto(pickle.dumps(i), (options.ip, options.port))
 
+print("numTransmits: %s\nnumRetransmits: %s\nnumBytes: %s" % 
+	(numTransmits,numRetransmits,numBytes))
 f.close()    
 sock.close()
