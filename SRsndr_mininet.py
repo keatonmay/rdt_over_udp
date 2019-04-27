@@ -18,6 +18,12 @@ nextSeqnum=1
 windowSize=7
 window = []
 
+numTransmits = 0
+numRetransmits = 0
+numTOevents = 0
+numBytes = 0
+numCorrupts = 0
+
 #SENDS DATA
 f = open("./500K.txt","rb") 
 data = f.read(100)
