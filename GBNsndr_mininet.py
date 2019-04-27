@@ -11,12 +11,12 @@ parser.add_option('-p', dest='port', type='int', default=12345)
 (options, args) = parser.parse_args()
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.settimeout(0.01)
+sock.settimeout(0.001)
 
 nextseqnumber = 0
 base = 0
 windowsize = 10
-timeout = 0.5
+timeout = 0.003
 
 numTransmits = 0
 numRetransmits = 0
@@ -54,15 +54,10 @@ while(data):
                         print("ack arrived in order: %s" % ack[0])
                         del packetsinwindow[0]
                         base = (base+1)%256
-                else:
-                        print("ack arrived out of order: %s" % ack[0])
-                        for i in packetsinwindow:
-                                sock.sendto(pickle.dumps(i), (options.ip, options.port))
+                        lastack = time.time()
         except:
                 if(time.time() - lastack > timeout):
                         #print("packet timeout, resending window")
                         numTOevents += 1
                         for i in packetsinwindow:
                                 sock.sendto(pickle.dumps(i), (options.ip, options.port))
-        #else:
-                #break
