@@ -26,8 +26,7 @@ numTOevents = 0
 numBytes = 0
 numCorrupts = 0
 
-CORRUPT_PROBA = 0
-corrupted = False
+CORRUPT_PROBA = 3
 
 packetsinwindow = []
 
@@ -45,17 +44,28 @@ while(data):
                 packchecksum = checksum.addbits(data)
                 packchecksum = packchecksum + (packchecksum >> 16)
                 packchecksum = ~packchecksum & 0xFFFF
+                
+                # create packet
                 packet.append(nextseqnumber)
                 packet.append(packchecksum)
                 packet.append(data)
+
+                # add packet with correct data to window
                 packetsinwindow.append(packet)
+                
+                if(random.randint(1,101) <= CORRUPT_PROBA):
+                        corruptedData = bytearray(data)
+                        corruptedData[0] ^= 0b00000001
+                        #insert corrupt data into packet - this part doesn't work
+                        #del packet[2]
+                        #packet.append(corruptedData)
+                
                 sock.sendto(pickle.dumps(packet), (options.ip, options.port))
-                if (not corrupted):
-                        nextseqnumber = (nextseqnumber+1)%256
-                        numTransmits += 1
-                        numBytes += len(packet[2])
-                        data = f.read(buffer)
-                corrupted = False
+                
+                nextseqnumber = (nextseqnumber+1)%256
+                numTransmits += 1
+                numBytes += len(packet[2])
+                data = f.read(buffer)
         try:
                 recdata, addr = sock.recvfrom(2048)
                 ack = []

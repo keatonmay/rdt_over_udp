@@ -22,15 +22,18 @@ f = open('test.txt','w')
 while True:
     try:
         data, addr = sock.recvfrom(1024)
+        #receive packet
         recpack = []
         recpack = pickle.loads(data)
     
+        #perform checksum
         packetcheck = checksum.addbits(recpack[2])
         packetcheck += recpack[1]
 
         #print(expectedseqnum)
         #print(recpack[0])
     
+        #if checksum returns 1's
         if(packetcheck == 0xFFFF):
             if recpack[0] == expectedseqnum:
                 f.write("%s: %d : %s\n" % (addr, recpack[0], recpack[2]))
