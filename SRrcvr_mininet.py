@@ -14,10 +14,11 @@ sock.bind((options.ip,options.port))
 sock.settimeout(3)
 
 expectedseqnum=1
-nak = []
+numBytes = 0
+numErrors = 0
+numOutOfSeq = 0
 
 f = open('test.txt','w')
-f.write('BEGIN FILE\n')
 f.flush()
 
 EOF = False #boolean for whether end of file is reached
@@ -37,7 +38,8 @@ while True:
 			if(rcvpkt[0]==expectedseqnum): #recieved seq num == expected seq num?
 				if rcvpkt[1]:
 					#writing address, seq number, data
-					f.write("%s: %d : %s\n" % (addr, rcvpkt[0], rcvpkt[1:]))
+					numBytes = numBytes +len(rcvpkt[1])
+					f.write("%s: %d : %s\n" % (addr, rcvpkt[0], rcvpkt[1]))
 					f.flush()
 				else: #if empty, reached end of file
 					EOF = True
@@ -50,21 +52,22 @@ while True:
 				sndpkt.append(h.digest())
 				sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
 			else:
-				print("ERROR expected %s, got %s" % (expectedseqnum, rcvpkt[0]))
+				print("OUT OF ORDER expected %s, got %s" % (expectedseqnum, rcvpkt[0]))
+				numOutOfSeq = numOutOfSeq +1
 				sndpkt = [] #send packets back for ACK (expectedseq,NAK, checksum)
 				sndpkt.append(expectedseqnum) #send back updated expected seq num
 				sndpkt.append('NAK')
 				h = hashlib.md5()
 				h.update(pickle.dumps(sndpkt))
 				sndpkt.append(h.digest())
-				nak.append(sndpkt)
 				sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
 		else:
-			print("ERROR") #unreachable
+			numErrors = numErrors +1
+			print("ERROR")
 	except:
 		if EOF:
-			f.write("END OF FILE")
 			f.flush()
 			if(time.time()-lastpktreceived>3): #timeout is 3
 				break
+print("numBytes: %s\nnumErrors: %s\nnumOutOfSeq: %s" % (numBytes, numErrors, numOutOfSeq))
 f.close()

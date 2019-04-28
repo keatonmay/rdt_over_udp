@@ -25,6 +25,7 @@ numRetransmits = 0
 numTOevents = 0
 numBytes = 0
 numCorrupts = 0
+startTime = time.time()
 
 #SENDS DATA
 f = open("./500K.txt","rb") 
@@ -56,7 +57,7 @@ while not done or window: #windows is not full and data is not empty
 		c = rcvpkt[-1] #check value
 		del rcvpkt[-1]
 		stat = rcvpkt[-1]
-		print("seq: %s stat: %s" % (rcvpkt[0],stat))
+		print("seq: %s stat: %s" % (rcvpkt[0]-1,stat))
 		h = hashlib.md5() #checksum calculated
 		h.update(pickle.dumps(rcvpkt))
 		if c == h.digest() and stat=='ACK': #if true, then received in order
@@ -75,13 +76,28 @@ while not done or window: #windows is not full and data is not empty
 				del window[0]
 				base = base + 1
 		else:
-			print("NAK'D")
+			i = 0
+			while i < len(unacked):
+				curpkt = unacked[i]
+				print("UNACK'D %s == to NAK'D %s" % (curpkt[0], rcvpkt[0]-1))
+				if(curpkt[0]>rcvpkt[0]):
+					break
+				if curpkt[0] == rcvpkt[0]-1:
+					numRetransmits = numRetransmits +1
+					print("resending NAK'D")
+					sock.sendto(pickle.dumps(curpkt), (options.ip, options.port))
+					break
+				i += 1	
 	except:
 		if(time.time() - lastackreceived > 0.01): #timeout is 0.01
 			for i in window:
+				numTOevents = numTOevents +1
 				sock.sendto(pickle.dumps(i), (options.ip, options.port))
 
-print("numTransmits: %s\nnumRetransmits: %s\nnumBytes: %s" % 
-	(numTransmits,numRetransmits,numBytes))
+endTime = time.time()
+print("\nnumTransmits: %s\nnumRetransmits: %s\nnumBytes: %s\nnumTOevents: %s" % 
+	(numTransmits,numRetransmits,numBytes,numTOevents))
+print("elapsed: %s" % (endTime-startTime))
+
 f.close()    
 sock.close()
