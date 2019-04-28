@@ -3,3 +3,12 @@
 
 # ignore test files
 test*
+
+# ignore .out files
+*.out
+
+# ignore cache files
+__*
+
+# ignore # files
+*#
