@@ -3,6 +3,7 @@ import optparse
 import pickle
 import hashlib
 import time
+import checksum
 
 parse = optparse.OptionParser()
 parse.add_option('-i', dest='ip', default='127.0.0.1')
@@ -25,18 +26,25 @@ lastpktreceived = time.time()
 while True:
 
 	try:
-		rcvpkt=[]
+		recpack =[]
 		packet,addr= sock.recvfrom(1024)
-		rcvpkt = pickle.loads(packet)
-		c = rcvpkt[-1] #-1 gets the last item in received packets (last index is check value)
-		del rcvpkt[-1]
+		recpack  = pickle.loads(packet)
+		c = recpack [-1] #-1 gets the last item in received packets (last index is check value)
+		del recpack [-1]
+		
+		# checksum
+		#packetcheck = checksum.addbits(recpack[2])
+		#packetcheck += recpack[1]
+		
 		h = hashlib.md5() #hash calculate checksum
-		h.update(pickle.dumps(rcvpkt))
+		h.update(pickle.dumps(recpack ))
+		
+		
 		if c == h.digest(): #if c == h.digest, packets received in order
-			if(rcvpkt[0]==expectedseqnum): #recieved seq num == expected seq num?
-				if rcvpkt[1]:
+			if(recpack [0]==expectedseqnum): #recieved seq num == expected seq num?
+				if recpack [1]:
 					#writing address, seq number, data
-					f.write("%s: %d : %s\n" % (addr, rcvpkt[0], rcvpkt[1:]))
+					f.write("%s: %d : %s\n" % (addr, recpack [0], recpack [1:]))
 					f.flush()
 				else: #if empty, reached end of file
 					EOF = True
@@ -48,7 +56,7 @@ while True:
 				sndpkt.append(h.digest())
 				sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
 			else:
-				print("ERROR expected %s, got %s" % (expectedseqnum, rcvpkt[0]))
+				print("ERROR expected %s, got %s" % (expectedseqnum, recpack [0]))
 		else:
 			sndpkt = [] #send packets back for ACK
 			sndpkt.append(expectedseqnum) #pkts with NAK (expectedseq, checksum)
