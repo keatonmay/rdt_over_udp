@@ -17,7 +17,7 @@ base=1
 nextSeqnum=1
 windowSize=10
 window = []
-nak = []
+unacked = []
 
 #stat vars
 numTransmits = 0
@@ -41,7 +41,7 @@ while not done or window: #windows is not full and data is not empty
 		h = hashlib.md5()
 		h.update(pickle.dumps(sndpkt))
 		sndpkt.append(h.digest())
-		nak.append(sndpkt) #automatically add ALL outgoing packets to nak
+		unacked.append(sndpkt)
 		sock.sendto(pickle.dumps(sndpkt), (options.ip, options.port))
 		numTransmits = numTransmits +1
 		nextSeqnum = nextSeqnum + 1 #send and update next seq
@@ -55,20 +55,27 @@ while not done or window: #windows is not full and data is not empty
 		rcvpkt = pickle.loads(packet)
 		c = rcvpkt[-1] #check value
 		del rcvpkt[-1]
+		stat = rcvpkt[-1]
+		print("seq: %s stat: %s" % (rcvpkt[0],stat))
 		h = hashlib.md5() #checksum calculated
 		h.update(pickle.dumps(rcvpkt))
-		if c == h.digest(): #if true, then received in order
+		if c == h.digest() and stat=='ACK': #if true, then received in order
 			#ACK RECEIVED in ORDER
+			i = 0
+			while i < len(unacked):
+				curpkt = unacked[i]
+				print("UNACK'D %s == to ACK'D %s" % (curpkt[0], rcvpkt[0]-1))
+				if curpkt[0] == rcvpkt[0]-1:
+					print("removing from UNACK'D")
+					del unacked[i]
+					break
+				i += 1	
 			while rcvpkt[0]>base and window:
-				del nak[0] #ACK'd so remove from nak
 				lastackreceived = time.time()
 				del window[0]
 				base = base + 1
-		else: #individually send back unacked packets (stored in nak)
-			while len(nak) > 0: #until all unACK'd packets sent (FIFO)
-				sock.sendto(pickle.dumps(nak[0]), (options.ip, options.port))
-				numRetransmits = numRetransmits +1
-				del nak[0] #resend and delete from nak
+		else:
+			print("NAK'D")
 	except:
 		if(time.time() - lastackreceived > 0.01): #timeout is 0.01
 			for i in window:

@@ -3,7 +3,6 @@ import optparse
 import pickle
 import hashlib
 import time
-import checksum
 
 parse = optparse.OptionParser()
 parse.add_option('-i', dest='ip', default='127.0.0.1')
@@ -15,6 +14,7 @@ sock.bind((options.ip,options.port))
 sock.settimeout(3)
 
 expectedseqnum=1
+nak = []
 
 f = open('test.txt','w')
 f.write('BEGIN FILE\n')
@@ -26,44 +26,41 @@ lastpktreceived = time.time()
 while True:
 
 	try:
-		recpack =[]
+		rcvpkt=[]
 		packet,addr= sock.recvfrom(1024)
-		recpack  = pickle.loads(packet)
-		c = recpack [-1] #-1 gets the last item in received packets (last index is check value)
-		del recpack [-1]
-		
-		# checksum
-		#packetcheck = checksum.addbits(recpack[2])
-		#packetcheck += recpack[1]
-		
+		rcvpkt = pickle.loads(packet)
+		c = rcvpkt[-1] #-1 gets the last item in received packets (last index is check value)
+		del rcvpkt[-1]
 		h = hashlib.md5() #hash calculate checksum
-		h.update(pickle.dumps(recpack ))
-		
-		
+		h.update(pickle.dumps(rcvpkt))
 		if c == h.digest(): #if c == h.digest, packets received in order
-			if(recpack [0]==expectedseqnum): #recieved seq num == expected seq num?
-				if recpack [1]:
+			if(rcvpkt[0]==expectedseqnum): #recieved seq num == expected seq num?
+				if rcvpkt[1]:
 					#writing address, seq number, data
-					f.write("%s: %d : %s\n" % (addr, recpack [0], recpack [1:]))
+					f.write("%s: %d : %s\n" % (addr, rcvpkt[0], rcvpkt[1:]))
 					f.flush()
 				else: #if empty, reached end of file
 					EOF = True
 				expectedseqnum = expectedseqnum + 1
-				sndpkt = [] #send packets back for ACK (expectedseq, checksum)
+				sndpkt = [] #send packets back for ACK (expectedseq,ACK, checksum)
 				sndpkt.append(expectedseqnum) #send back updated expected seq num
+				sndpkt.append('ACK')
 				h = hashlib.md5()
 				h.update(pickle.dumps(sndpkt))
 				sndpkt.append(h.digest())
 				sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
 			else:
-				print("ERROR expected %s, got %s" % (expectedseqnum, recpack [0]))
+				print("ERROR expected %s, got %s" % (expectedseqnum, rcvpkt[0]))
+				sndpkt = [] #send packets back for ACK (expectedseq,NAK, checksum)
+				sndpkt.append(expectedseqnum) #send back updated expected seq num
+				sndpkt.append('NAK')
+				h = hashlib.md5()
+				h.update(pickle.dumps(sndpkt))
+				sndpkt.append(h.digest())
+				nak.append(sndpkt)
+				sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
 		else:
-			sndpkt = [] #send packets back for ACK
-			sndpkt.append(expectedseqnum) #pkts with NAK (expectedseq, checksum)
-			h = hashlib.md5()
-			h.update(pickle.dumps(sndpkt))
-			sndpkt.append(h.digest())
-			sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
+			print("ERROR") #unreachable
 	except:
 		if EOF:
 			f.write("END OF FILE")
