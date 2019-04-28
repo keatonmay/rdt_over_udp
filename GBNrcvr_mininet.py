@@ -9,6 +9,7 @@ parse.add_option('-p', dest='port', default=12345)
 
 expectedseqnum = 0
 
+### STATISTIC VARIABLES ###
 numBytes = 0
 numErrors = 0
 numOutOfSeq = 0
@@ -30,7 +31,7 @@ while True:
         packetcheck = checksum.addbits(recpack[2])
         packetcheck += recpack[1]
     
-        #if checksum returns 1's
+        #if checksum returns 1's, send to application (write to text) and send ack if it is the correct packet
         if(packetcheck == 0xFFFF):
             if recpack[0] == expectedseqnum:
                 f.write("%s: %d : %s\n" % (addr, recpack[0], recpack[2]))
@@ -43,11 +44,13 @@ while True:
             ack.append(recpack[0])
             sock.sendto(pickle.dumps(ack), (addr[0], addr[1]))
         else:
+            numBytes += len(recpack[2])
             numErrors += 1
 
     except:
         break
 
+# print statistic variables
 print("number of bytes received: ", numBytes)
 print("number of checksum errors: ", numErrors)
 print("number of out of order packets received: ", numOutOfSeq)

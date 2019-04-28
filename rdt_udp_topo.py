@@ -9,7 +9,6 @@ from mininet.link import TCLink
 from mininet.util import dumpNodeConnections
 from mininet.log import setLogLevel
 
-
 linkOneGigDelayNoLoss = dict(bw = 1000, delay='5ms', loss=0, max_queue_size=1000, use_htb=True)
 linkOneGigDelayLoss = dict(bw = 1000, delay='5ms', loss=5, max_queue_size=1000, use_htb=True)
 linkOneGigNoDelayNoLoss = dict(bw = 1000, delay='0ms', loss=0, max_queue_size=1000, use_htb=True)
@@ -19,12 +18,12 @@ class SimpleTopo(Topo):
 	def build(self):
 		switch1 = self.addSwitch('s1')
 		host1 = self.addHost('h1')
-		self.addLink(host1, switch1, **linkOneGigNoDelayNoLoss)
-#		self.addLink(host1, switch1, **linkOneGigDelayLoss)
+#		self.addLink(host1, switch1, **linkOneGigNoDelayNoLoss)
+		self.addLink(host1, switch1, **linkOneGigDelayLoss)
 
 		host2 = self.addHost('h2')
-		self.addLink(host2, switch1, **linkOneGigNoDelayNoLoss)
-#		self.addLink(host2, switch1, **linkOneGigDelayLoss)
+#		self.addLink(host2, switch1, **linkOneGigNoDelayNoLoss)
+		self.addLink(host2, switch1, **linkOneGigDelayLoss)
 
 
 def perfTest():
