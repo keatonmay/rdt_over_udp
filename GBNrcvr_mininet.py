@@ -15,7 +15,7 @@ numOutOfSeq = 0
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((options.ip, options.port))
-sock.settimeout(0.1)
+sock.settimeout(1)
 
 f = open('test.txt','w')
 
@@ -29,9 +29,6 @@ while True:
         #perform checksum
         packetcheck = checksum.addbits(recpack[2])
         packetcheck += recpack[1]
-
-        #print(expectedseqnum)
-        #print(recpack[0])
     
         #if checksum returns 1's
         if(packetcheck == 0xFFFF):
@@ -46,7 +43,6 @@ while True:
             ack.append(recpack[0])
             sock.sendto(pickle.dumps(ack), (addr[0], addr[1]))
         else:
-            print("checksum error")
             numErrors += 1
 
     except:
