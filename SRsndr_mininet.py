@@ -28,13 +28,17 @@ numCorrupts = 0
 ### SETTABLE PARAMTERS ###
 CORRUPT_PROBA = 0
 payload_size = 100
-windowsize = 40
+windowsize = 10
 timeout = 0.02
 ##########################
 
 packetsinwindow = []
+alreadyacked = []
+times = []
 
-print("Protocol: GBN")
+windownumbers = [i for i in range(windowsize)]
+
+print("Protocol: SR")
 print("Corruption probability: ", CORRUPT_PROBA)
 print("Payload size: ", payload_size)
 print("Window size: ", windowsize)
@@ -51,6 +55,7 @@ lastack = time.time()
 while(data):
         if nextseqnumber < base+windowsize:
                 packet = []
+                #print("seq num: ", nextseqnumber%256)
                 # add bits and take one's complement to compute checksum
                 packchecksum = checksum.addbits(data)
                 packchecksum = packchecksum + (packchecksum >> 16)
@@ -63,10 +68,12 @@ while(data):
 
                 # add packet with correct data to window
                 packetsinwindow.append(packet)
+                times.append(time.time())
 
                 # corrupt a packet with chance CORRUPT_PROBA
                 if(random.randint(1,101) <= CORRUPT_PROBA):
                         del packetsinwindow[-1]
+                        del times[-1]
                         corruptedData = bytearray(data)
                         corruptedData[0] ^= 0b00000001
                         del packet[2]
@@ -75,9 +82,9 @@ while(data):
                 else:
                         nextseqnumber += 1
                         data = f.read(buffer)
-                        
                 # send the packet
                 sock.sendto(pickle.dumps(packet), (options.ip, options.port))
+                #print("packet sent", packet[0])
                 numTransmits += 1
                 numBytes += len(packet[2])
         try:
@@ -86,20 +93,46 @@ while(data):
                 ack = []
                 ack = pickle.loads(recdata)
                 if ack[0] == base%256:
+                        #print("received in order ack: ", ack[0])
                         del packetsinwindow[0]
+                        del times[0]
                         base += 1
-                        lastack = time.time()
+                        windownumbers = [(x+1)%256 for x in windownumbers]
+
+                # if the ack is greater than the base, buffer it for later use
+                elif ack[0] in windownumbers and not any(ack[0] in s1 for s1 in alreadyacked):
+                        for i in packetsinwindow:
+                                if ack[0] == i[0]:
+                                        #print("received out of order ack: ", ack[0])
+                                        alreadyacked.append(i)
+                                        #print(alreadyacked)
+
+                # see if buffered packets can advance the window, and advance the window
+                newlist = []
+                for i in alreadyacked:
+                        #print("searching for already acked packets")
+                        if i[0] == base%256:
+                                #print("already acked: ", i[0])
+                                del packetsinwindow[0]
+                                del times[0]
+                                base += 1
+                                windownumbers = [(x+1)%256 for x in windownumbers]
+                        else:
+                                newlist.append(i)
+                alreadyacked = newlist
         except:
                 # resend packets in the window if timeout
-                if(time.time() - lastack > timeout):
-                        numTOevents += 1
-                        for i in packetsinwindow:
-                                sock.sendto(pickle.dumps(i), (options.ip, options.port))
-                        numRetransmits += 1
-                        lastack = time.time()
+                for i in range(len(times)):
+                        if(time.time() - times[i] > timeout):
+                                numTOevents += 1
+                                sock.sendto(pickle.dumps(packetsinwindow[i]), (options.ip, options.port))
+                                numRetransmits += 1
+                                #print("resent timeout packet", packetsinwindow[i][0])
+                                times[i] = time.time()
 
 # print statistic variables on completion
 end = time.time()
+print("Job completed!")
 print("total elapsed time: ", end - begin)
 print("number of packets transmitted (excluding retransmits): ", numTransmits)
 print("number of bytes sent: ", numBytes)

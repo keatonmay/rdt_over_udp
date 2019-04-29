@@ -2,6 +2,7 @@
 # to inject losses and delay
 import sys
 import time
+import optparse
 from mininet.cli import CLI
 from mininet.topo import Topo
 from mininet.net import Mininet
@@ -18,12 +19,12 @@ class SimpleTopo(Topo):
 	def build(self):
 		switch1 = self.addSwitch('s1')
 		host1 = self.addHost('h1')
-		self.addLink(host1, switch1, **linkOneGigNoDelayNoLoss)
-#		self.addLink(host1, switch1, **linkOneGigDelayLoss)
+#		self.addLink(host1, switch1, **linkOneGigNoDelayNoLoss)
+		self.addLink(host1, switch1, **linkOneGigDelayLoss)
 
 		host2 = self.addHost('h2')
-		self.addLink(host2, switch1, **linkOneGigNoDelayNoLoss)
-#		self.addLink(host2, switch1, **linkOneGigDelayLoss)
+#		self.addLink(host2, switch1, **linkOneGigNoDelayNoLoss)
+		self.addLink(host2, switch1, **linkOneGigDelayLoss)
 
 
 def perfTest():
@@ -38,8 +39,8 @@ def perfTest():
 	net.pingAll()
 	c0, h1, h2 = net.get('c0','h1', 'h2')
 	print ('c0.IP, h1.IP, h2.IP = ', c0.IP, h1.IP(), h2.IP())
-	h1.cmd('python3 GBNrcvr_mininet.py -i %s > r.out &' %h1.IP())
-        h2.cmd('python3 GBNsndr_mininet.py -i %s > s.out &' %h1.IP())
+	h1.cmd('python3 SRrcvr_mininet.py -i %s > r.out &' %h1.IP())
+        h2.cmd('python3 SRsndr_mininet.py -i %s > s.out &' %h1.IP())
 	print("IP address of h1 is %s" % h1.IP())
 	print("IP address of h2 is %s" % h2.IP())
 	
@@ -48,6 +49,7 @@ def perfTest():
 
 if __name__ == '__main__':
 	# tell mininet to print useful info
+
 	setLogLevel('info')
 	perfTest()
 
