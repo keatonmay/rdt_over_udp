@@ -18,12 +18,12 @@ class SimpleTopo(Topo):
 	def build(self):
 		switch1 = self.addSwitch('s1')
 		host1 = self.addHost('h1')
-#		self.addLink(host1, switch1, **linkOneGigNoDelayNoLoss)
-		self.addLink(host1, switch1, **linkOneGigDelayLoss)
+		self.addLink(host1, switch1, **linkOneGigNoDelayNoLoss)
+#		self.addLink(host1, switch1, **linkOneGigDelayLoss)
 
 		host2 = self.addHost('h2')
-#		self.addLink(host2, switch1, **linkOneGigNoDelayNoLoss)
-		self.addLink(host2, switch1, **linkOneGigDelayLoss)
+		self.addLink(host2, switch1, **linkOneGigNoDelayNoLoss)
+#		self.addLink(host2, switch1, **linkOneGigDelayLoss)
 
 
 def perfTest():
