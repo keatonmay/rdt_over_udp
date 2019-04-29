@@ -1,73 +1,84 @@
-import socket
-import optparse
+import socket, optparse
 import pickle
-import hashlib
-import time
+import checksum
 
 parse = optparse.OptionParser()
 parse.add_option('-i', dest='ip', default='127.0.0.1')
 parse.add_option('-p', dest='port', default=12345)
 (options, args) = parse.parse_args()
 
-sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-sock.bind((options.ip,options.port))
-sock.settimeout(3)
+expectedseqnum = 0
 
-expectedseqnum=1
+### STATISTIC VARIABLES ###
 numBytes = 0
 numErrors = 0
 numOutOfSeq = 0
 
-f = open('test.txt','w')
-f.flush()
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind((options.ip, options.port))
+sock.settimeout(1)
 
-EOF = False #boolean for whether end of file is reached
-lastpktreceived = time.time()
+limitnumbers = [i for i in range(0,50)]
+
+alreadyreceived = []
+
+f = open('test.txt','w')
 
 while True:
+    try:
+        data, addr = sock.recvfrom(2048)
+        #receive packet
+        recpack = []
+        recpack = pickle.loads(data)
+    
+        #perform checksum
+        packetcheck = checksum.addbits(recpack[2])
+        packetcheck += recpack[1]
+    
+        #if checksum returns 1's, send to application (write to text) and send ack if it is the correct packet
+        if(packetcheck == 0xFFFF):
+                ack = []
+                if recpack[0] == expectedseqnum:
+                        f.write("%s: %d : %s\n" % (addr, recpack[0], recpack[2]))
+                        f.flush()
+                        expectedseqnum = (expectedseqnum+1)%256
+                        numBytes += len(recpack[2])
+                        limitnumbers = [(x+1)%256 for x in limitnumbers]
+                        #print("wrote: ", recpack[0])
+                # if the packet is greater than expected, buffer it for later use
+                elif recpack[0] in limitnumbers and not any(recpack[0] in s1 for s1 in alreadyreceived):
+                        #print("received out of order packet: ", recpack[0])
+                        numOutOfSeq += 1
+                        alreadyreceived.append(recpack)
+                        numBytes += len(recpack[2])
+                        #print(alreadyreceived)
 
-	try:
-		rcvpkt=[]
-		packet,addr= sock.recvfrom(1024)
-		rcvpkt = pickle.loads(packet)
-		c = rcvpkt[-1] #-1 gets the last item in received packets (last index is check value)
-		del rcvpkt[-1]
-		h = hashlib.md5() #hash calculate checksum
-		h.update(pickle.dumps(rcvpkt))
-		if c == h.digest(): #if c == h.digest, packets received in order
-			if(rcvpkt[0]==expectedseqnum): #recieved seq num == expected seq num?
-				if rcvpkt[1]:
-					#writing address, seq number, data
-					numBytes = numBytes +len(rcvpkt[1])
-					f.write("%s: %d : %s\n" % (addr, rcvpkt[0], rcvpkt[1]))
-					f.flush()
-				else: #if empty, reached end of file
-					EOF = True
-				expectedseqnum = expectedseqnum + 1
-				sndpkt = [] #send packets back for ACK (expectedseq,ACK, checksum)
-				sndpkt.append(expectedseqnum) #send back updated expected seq num
-				sndpkt.append('ACK')
-				h = hashlib.md5()
-				h.update(pickle.dumps(sndpkt))
-				sndpkt.append(h.digest())
-				sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
-			else:
-				print("OUT OF ORDER expected %s, got %s" % (expectedseqnum, rcvpkt[0]))
-				numOutOfSeq = numOutOfSeq +1
-				sndpkt = [] #send packets back for ACK (expectedseq,NAK, checksum)
-				sndpkt.append(expectedseqnum) #send back updated expected seq num
-				sndpkt.append('NAK')
-				h = hashlib.md5()
-				h.update(pickle.dumps(sndpkt))
-				sndpkt.append(h.digest())
-				sock.sendto(pickle.dumps(sndpkt), (addr[0], addr[1]))
-		else:
-			numErrors = numErrors +1
-			print("ERROR")
-	except:
-		if EOF:
-			f.flush()
-			if(time.time()-lastpktreceived>3): #timeout is 3
-				break
-print("numBytes: %s\nnumErrors: %s\nnumOutOfSeq: %s" % (numBytes, numErrors, numOutOfSeq))
-f.close()
+                # send ack for the packet
+                ack.append(recpack[0])
+                sock.sendto(pickle.dumps(ack), (addr[0], addr[1]))
+                #print("ack sent", recpack[0])
+        else:
+                #print("checksum error!")
+                numBytes += len(recpack[2])
+                numErrors += 1
+
+        # check to see if buffered packets can increase expected sequence number
+        newlist = []
+        for i in alreadyreceived:
+                if expectedseqnum == i[0]:
+                        #print("processing already received packet: ", i[0])
+                        f.write("%s: %d: %s\n" % (addr, i[0], i[2]))
+                        f.flush()
+                        expectedseqnum = (expectedseqnum+1)%256
+                        #print("wrote: ", i[0])
+                        limitnumbers = [(x+1)%256 for x in limitnumbers]
+                else:
+                        newlist.append(i)
+        alreadyreceived = newlist
+    except:
+        break
+
+# print statistic variables
+print("number of bytes received: ", numBytes)
+print("number of checksum errors: ", numErrors)
+print("number of out of order packets received: ", numOutOfSeq)
