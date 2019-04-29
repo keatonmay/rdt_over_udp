@@ -44,8 +44,8 @@ def perfTest():
 	h1.cmd('python3 SRrcvr_mininet.py -i %s > r.out &' %h1.IP())
 	h2.cmd('python3 SRsndr_mininet.py -i %s > s.out &' %h1.IP())
 	# GBN
-	#h1.cmd('python3 SRrcvr_mininet.py -i %s > r.out &' %h1.IP())
-	#h2.cmd('python3 SRsndr_mininet.py -i %s > s.out &' %h1.IP())
+	#h1.cmd('python3 GBNrcvr_mininet.py -i %s > r.out &' %h1.IP())
+	#h2.cmd('python3 GBNsndr_mininet.py -i %s > s.out &' %h1.IP())
 	print("IP address of h1 is %s" % h1.IP())
 	print("IP address of h2 is %s" % h2.IP())
 	
