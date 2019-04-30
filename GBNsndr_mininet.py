@@ -95,7 +95,7 @@ while(data):
                         numTOevents += 1
                         for i in packetsinwindow:
                                 sock.sendto(pickle.dumps(i), (options.ip, options.port))
-                        numRetransmits += 1
+                                numRetransmits += 1
                         lastack = time.time()
 
 # print statistic variables on completion
