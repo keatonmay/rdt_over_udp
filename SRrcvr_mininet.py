@@ -61,22 +61,21 @@ while True:
                 #print("checksum error!")
                 numBytes += len(recpack[2])
                 numErrors += 1
-
-        # check to see if buffered packets can increase expected sequence number
-        newlist = []
-        for i in alreadyreceived:
-                if expectedseqnum == i[0]:
-                        #print("processing already received packet: ", i[0])
-                        f.write("%s: %d: %s\n" % (addr, i[0], i[2]))
-                        f.flush()
-                        expectedseqnum = (expectedseqnum+1)%256
-                        #print("wrote: ", i[0])
-                        limitnumbers = [(x+1)%256 for x in limitnumbers]
-                else:
-                        newlist.append(i)
-        alreadyreceived = newlist
     except:
         break
+    # check to see if buffered packets can increase expected sequence number
+    newlist = []
+    for i in alreadyreceived:
+            if expectedseqnum == i[0]:
+                    #print("processing already received packet: ", i[0])
+                    f.write("%s: %d: %s\n" % (addr, i[0], i[2]))
+                    f.flush()
+                    expectedseqnum = (expectedseqnum+1)%256
+                    #print("wrote: ", i[0])
+                    limitnumbers = [(x+1)%256 for x in limitnumbers]
+            else:
+                    newlist.append(i)
+    alreadyreceived = newlist
 
 # print statistic variables
 print("number of bytes received: ", numBytes)
