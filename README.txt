@@ -1,4 +1,3 @@
-CS 4390.003
 Keaton May
 
 These python scripts implement Go-Back-N and Selective Repeat RDT protocols over an unreliable UDP connection. The scripts were built to run on mininet: http://mininet.org/, which has affected the usability of the scripts a little bit.
