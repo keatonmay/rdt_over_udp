@@ -16,6 +16,6 @@ sudo -E python rdt_udp_topo.py
 
 then wait 2-20 seconds, depending on the configuration, to quit the mininet CLI.
 
-The output for sender and receiver will be written to s.out and r.out respectively and contain the variables required by the assignment. One bug we've run into is that sometimes the receiver will have received but has not accounted for a packet or two in the output. If this is the case, run the program once or twice more and it should provide the proper output.
+The output for sender and receiver will be written to s.out and r.out respectively and contain the variables required by the assignment. 
 
 IMPORTANT NOTE: r.out and s.out will not be written until the scripts have completed. If r.out and s.out have not changed from a previous execution or do not exist, run the command again and wait a bit longer.
